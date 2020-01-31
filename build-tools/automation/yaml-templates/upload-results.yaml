@@ -4,6 +4,17 @@ parameters:
   artifactName: results
 
 steps:
+- powershell: |
+    $BuildNumber = "$Env:BUILD_BUILDNUMBER";
+    $BuildRevision = $BuildNumber.Substring($BuildNumber.LastIndexOf('-') + 1)
+    Write-Host "##vso[task.setvariable variable=BuildRevision;]$BuildRevision"
+  condition: eq(variables['agent.os'],'Windows_NT')
+  
+- bash: |
+    BUILD_REVISION=$(echo $BUILD_BUILDNUMBER | cut -d'-' -f 3)
+    echo "##vso[task.setvariable variable=BuildRevision]$BUILD_REVISION"
+  condition: ne(variables['agent.os'],'Windows_NT')
+
 - task: MSBuild@1
   displayName: package build and test results
   inputs:
@@ -15,6 +26,6 @@ steps:
 - task: PublishPipelineArtifact@0
   displayName: upload build and test results
   inputs:
-    artifactName: ${{ parameters.artifactName }}
+    artifactName: ${{ parameters.artifactName }} (Run $(BuildRevision))
     targetPath: $(Build.ArtifactStagingDirectory)
   condition: always()
